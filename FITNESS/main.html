@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fitness Tracker</title>
+    <style>
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .stopwatch {
+            font-size: 2em;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .start-btn {
+            background-color: #008CBA;
+            color: white;
+        }
+        .stop-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .workout-list {
+            margin-top: 20px;
+            text-align: left;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+        .workout-item {
+            padding: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Fitness Tracker</h2>
+
+    <!-- Workout Name Input -->
+    <label for="workoutName">Workout Name:</label>
+    <input type="text" id="workoutName" placeholder="Enter workout name" required>
+    
+    <!-- Stopwatch -->
+    <div class="stopwatch">
+        <span id="time">00:00:00</span>
+    </div>
+    
+    <!-- Buttons -->
+    <div>
+        <button class="btn start-btn" id="startBtn" onclick="startStopwatch()">Start</button>
+        <button class="btn stop-btn" id="stopBtn" onclick="stopStopwatch()" disabled>Stop</button>
+    </div>
+    
+    <!-- Save Workout -->
+    <button class="btn save-btn" onclick="saveWorkout()">Save Workout</button>
+    
+    <!-- Hidden form to save workout -->
+    <form id="saveForm" action="save_workout.php" method="POST" style="display: none;">
+        <input type="hidden" id="savedWorkoutName" name="workoutName">
+        <input type="hidden" id="savedWorkoutTime" name="workoutTime">
+    </form>
+
+    <!-- Display saved workouts -->
+    <div class="workout-list">
+        <h3>Saved Workouts</h3>
+        <div id="workoutList"></div>
+    </div>
+</div>
+
+<script>
+    let startTime;
+    let updatedTime;
+    let difference;
+    let tInterval;
+    let running = false;
+
+    // Stopwatch functionality
+    function startStopwatch() {
+        if (!running) {
+            startTime = new Date().getTime();
+            tInterval = setInterval(getTime, 1);
+            document.getElementById("startBtn").innerText = "Pause";
+            document.getElementById("stopBtn").disabled = false;
+            running = true;
+        } else {
+            clearInterval(tInterval);
+            document.getElementById("startBtn").innerText = "Resume";
+            running = false;
+        }
+    }
+
+    function stopStopwatch() {
+        clearInterval(tInterval);
+        document.getElementById("startBtn").innerText = "Start";
+        document.getElementById("stopBtn").disabled = true;
+        running = false;
+    }
+
+    function getTime() {
+        updatedTime = new Date().getTime();
+        difference = updatedTime - startTime;
+        let hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        let minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        let seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+        hours = (hours < 10) ? "0" + hours : hours;
+        minutes = (minutes < 10) ? "0" + minutes : minutes;
+        seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+        document.getElementById("time").innerText = hours + ":" + minutes + ":" + seconds;
+    }
+
+    // Save workout data
+    function saveWorkout() {
+        const workoutName = document.getElementById("workoutName").value;
+        const workoutTime = document.getElementById("time").innerText;
+
+        if (workoutName) {
+            document.getElementById("savedWorkoutName").value = workoutName;
+            document.getElementById("savedWorkoutTime").value = workoutTime;
+            document.getElementById("saveForm").submit();
+        } else {
+            alert("Please enter a workout name.");
+        }
+    }
+
+    // Fetch saved workouts
+    function fetchWorkouts() {
+        fetch('fetch_workouts.php')
+            .then(response => response.json())
+            .then(data => {
+                const workoutList = document.getElementById("workoutList");
+                workoutList.innerHTML = '';
+
+                if (data.length > 0) {
+                    data.forEach(workout => {
+                        const workoutItem = document.createElement("div");
+                        workoutItem.classList.add("workout-item");
+                        workoutItem.innerHTML = `<strong>${workout.workout_name}</strong> - ${workout.workout_time}`;
+                        workoutList.appendChild(workoutItem);
+                    });
+                } else {
+                    workoutList.innerHTML = "<p>No workouts saved yet.</p>";
+                }
+            })
+            .catch(error => console.error("Error fetching workouts:", error));
+    }
+
+    // Fetch workouts when page loads
+    window.onload = fetchWorkouts;
+</script>
+
+</body>
+</html>
